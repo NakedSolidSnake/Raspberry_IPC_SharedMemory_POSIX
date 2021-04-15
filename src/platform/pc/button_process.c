@@ -7,6 +7,8 @@
 #include <sys/stat.h> 
 #include <sys/types.h>
 
+#define BUFFER_SIZE     256
+
 static bool Init(void *object);
 static bool Read(void *object);
 static const char * myfifo = "/tmp/shared_memory_posix_fifo";
@@ -15,14 +17,20 @@ static int fd;
 
 int main(int argc, char *argv[])
 {    
-
     Button_Interface button_interface = 
     {
         .Init = Init,
         .Read = Read
     };
 
-    Button_Run(NULL, &button_interface);
+    POSIX_SHM posix_shm = 
+    {
+        .buffer_size = BUFFER_SIZE,
+        .mode = write_mode,
+        .name = "/shm"
+    };
+
+    Button_Run(NULL, &posix_shm, &button_interface);
         
     return 0;
 }

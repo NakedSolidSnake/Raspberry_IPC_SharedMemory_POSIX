@@ -8,6 +8,8 @@
 #include <syslog.h>
 #include <led_interface.h>
 
+#define BUFFER_SIZE     256
+
 bool Init(void *object);
 bool Set(void *object, uint8_t state);
 
@@ -20,7 +22,14 @@ int main(int argc, char *argv[])
         .Set = Set
     };
 
-    LED_Run(NULL, &led_interface);
+    POSIX_SHM posix_shm = 
+    {
+        .buffer_size = BUFFER_SIZE,
+        .mode = read_mode,
+        .name = "/shm"
+    };
+
+    LED_Run(NULL, &posix_shm, &led_interface);
     
     return 0;
 }

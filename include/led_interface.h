@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <posix_shm.h>
 
 /**
  * @brief 
@@ -23,6 +24,6 @@ typedef struct
  * @return true 
  * @return false 
  */
-bool LED_Run(void *object, LED_Interface *led);
+bool LED_Run(void *object, POSIX_SHM *posix_shm, LED_Interface *led);
 
 #endif /* LED_INTERFACE_H_ */

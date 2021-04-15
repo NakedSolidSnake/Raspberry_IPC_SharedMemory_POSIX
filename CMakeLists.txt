@@ -28,9 +28,20 @@ else()
   message(FATAL_ERROR "")
 endif()
 
+add_library(posix_shm "")
+target_link_libraries(posix_shm PUBLIC rt)
+target_sources(posix_shm
+  PUBLIC 
+  ${CMAKE_CURRENT_LIST_DIR}/lib/posix_shm.c
+  )
+target_include_directories(posix_shm 
+  PUBLIC 
+  ${CMAKE_CURRENT_LIST_DIR}/lib  
+  )
+
 #build lib interface
 add_library(interface "")
-
+target_link_libraries(interface PUBLIC posix_shm)
 target_sources(interface
   PUBLIC 
   ${CMAKE_CURRENT_LIST_DIR}/src/led_interface.c
