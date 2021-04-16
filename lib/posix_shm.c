@@ -10,9 +10,13 @@
 bool POSIX_SHM_Init(POSIX_SHM *posix_shm)
 {
     int mode;
-    posix_shm->fd = shm_open(posix_shm->name, O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    posix_shm->fd = shm_open(posix_shm->name, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
     if(posix_shm->fd < 0)
         return false;
+
+    if(ftruncate(posix_shm->fd , posix_shm->buffer_size) < 0)
+        return false;
+    
 
     if(posix_shm->mode == write_mode)
         mode = PROT_WRITE;

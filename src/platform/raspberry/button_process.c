@@ -7,6 +7,8 @@
 #include <button.h>
 #include <button_interface.h>
 
+#define BUFFER_SIZE     256
+
 static bool Init(void *object);
 static bool Read(void *object);
 
@@ -28,7 +30,14 @@ int main(int argc, char *argv[])
         .Read = Read
     };
 
-    Button_Run(&button, &button_interface);
+    POSIX_SHM posix_shm = 
+    {
+        .buffer_size = BUFFER_SIZE,
+        .mode = write_mode,
+        .name = "/shm"
+    };
+
+    Button_Run(&button, &posix_shm, &button_interface);
         
     return 0;
 }
