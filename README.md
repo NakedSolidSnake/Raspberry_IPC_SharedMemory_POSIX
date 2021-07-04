@@ -29,12 +29,73 @@ Preencher
 
 ## Implementação
 
+### *posix_shm.h*
+```c
+typedef enum 
+{
+    write_mode,
+    read_mode
+} Mode;
+
+typedef struct 
+{
+    int fd;
+    const char *name;
+    char *buffer;
+    int buffer_size;
+    Mode mode;
+} POSIX_SHM;
+```
+
+```c
+bool POSIX_SHM_Init(POSIX_SHM *posix_shm);
+bool POSIX_SHM_Cleanup(POSIX_SHM *posix_shm);
+```
+
+### *posix_shm.c*
+```c
+bool POSIX_SHM_Init(POSIX_SHM *posix_shm)
+{
+    int mode;
+    posix_shm->fd = shm_open(posix_shm->name, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+    if(posix_shm->fd < 0)
+        return false;
+
+    if(ftruncate(posix_shm->fd , posix_shm->buffer_size) < 0)
+        return false;
+    
+
+    if(posix_shm->mode == write_mode)
+        mode = PROT_WRITE;
+    else if(posix_shm->mode == read_mode)
+        mode = PROT_READ;
+
+    posix_shm->buffer = mmap(NULL, posix_shm->buffer_size, mode, MAP_SHARED, posix_shm->fd, 0);
+    if(posix_shm->buffer < 0)
+        return false;
+
+    return true;
+}
+```
+
+```c
+bool POSIX_SHM_Cleanup(POSIX_SHM *posix_shm)
+{
+    if(posix_shm->buffer > 0)
+        munmap(posix_shm->buffer, posix_shm->buffer_size);
+    if(posix_shm->fd > 0)
+        shm_unlink(posix_shm->name);
+
+    return true;
+}
+```
+
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
 * _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
 * _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
 * _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
 
-### *launch_processes*
+### *launch_processes.c*
 
 No _main_ criamos duas variáveis para armazenar o PID do *button_process* e do *led_process*, e mais duas variáveis para armazenar o resultado caso o _exec_ venha a falhar.
 ```c
@@ -71,10 +132,61 @@ if(pid_led == 0)
 }
 ```
 
-## *button_interface*
-descrever o código
-## *led_interface*
-descrever o código
+### *button_interface.h*
+```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Read)(void *object);
+    
+} Button_Interface;
+```
+
+```c
+bool Button_Run(void *object, POSIX_SHM *posix_shm, Button_Interface *button);
+```
+
+### *button_interface.c*
+```c
+bool Button_Run(void *object, POSIX_SHM *posix_shm, Button_Interface *button)
+{
+    int state = 0;
+    if(button->Init(object) == false)
+        return false;
+
+    if(POSIX_SHM_Init(posix_shm) == false)
+        return false;
+
+    while(true)
+    {
+        wait_press(object, button);
+
+        state ^= 0x01;
+        snprintf(posix_shm->buffer, posix_shm->buffer_size, "state = %d", state);
+    }
+
+    POSIX_SHM_Cleanup(posix_shm);
+   
+    return false;
+}
+```
+
+### *led_interface.h*
+```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Set)(void *object, uint8_t state);
+} LED_Interface;
+```
+
+```c
+bool LED_Run(void *object, POSIX_SHM *posix_shm, LED_Interface *led);
+```
+
+### *led_interface.c*
+```c
+```
 
 ## Compilando, Executando e Matando os processos
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
