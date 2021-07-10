@@ -25,11 +25,32 @@
 * [Referência](#referência)
 
 ## Introdução
-Preencher
+POSIX Shared Memory é uma padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Semaphore System V, porém utiliza uma forma de implementação totalmente nova(não abordado nesse artigo). Diferente dos outros mecanismos(Semaphore e Queue) necessita de um outro recurso para que a memória alocada seja compartilhada entre os outros processos.
+
+## Systemcalls
+Para utilizar a API referente a Shared Memory é necessário realizar a linkagem com a biblioteca rt
+
+Esta função cria ou obtém uma Shared Memory
+```c
+#include <sys/mman.h>
+#include <sys/stat.h>        /* For mode constants */
+#include <fcntl.h>           /* For O_* constants */
+
+int shm_open(const char *name, int oflag, mode_t mode);
+```
+
+Esta função remove uma Shared Memory criada pela shm_open
+```c
+#include <sys/mman.h>
+
+int shm_unlink(const char *name);
+```
 
 ## Implementação
+Para facilitar o uso desse mecanismo, o uso da API referente a Shared Memory POSIX é feita através de uma abstração na forma de uma biblioteca.
 
 ### *posix_shm.h*
+Para o seu uso é criada uma enumeração que determina o modo de abertura dessa shared memory e uma estrutura que vai realizar a configuração dessa shared memory, como seu nome, tamanho e o modo de operação.
 ```c
 typedef enum 
 {
@@ -47,12 +68,14 @@ typedef struct
 } POSIX_SHM;
 ```
 
+As funções pertinentes para criar e remover a shared memory
 ```c
 bool POSIX_SHM_Init(POSIX_SHM *posix_shm);
 bool POSIX_SHM_Cleanup(POSIX_SHM *posix_shm);
 ```
 
 ### *posix_shm.c*
+Aqui em POSIX_SHM_Init criamos a shared memory baseada no nome e seu handle é guardado. A shared memory não possui um mecanismo próprio como a Shared Memory System V, para isso ser possível é necessário o uso do mmap para que a shared memory seja visível por outros processos.
 ```c
 bool POSIX_SHM_Init(POSIX_SHM *posix_shm)
 {
@@ -78,6 +101,7 @@ bool POSIX_SHM_Init(POSIX_SHM *posix_shm)
 }
 ```
 
+Aqui em POSIX_SHM_Cleanup é realizada a remoção da shared memory baseado no seu handle
 ```c
 bool POSIX_SHM_Cleanup(POSIX_SHM *posix_shm)
 {
@@ -91,9 +115,9 @@ bool POSIX_SHM_Cleanup(POSIX_SHM *posix_shm)
 ```
 
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
-* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
-* _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
-* _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ através da combinação _fork_ e _exec_
+* _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
+* _led_interface_ - é responsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
 
 ### *launch_processes.c*
 
@@ -133,6 +157,7 @@ if(pid_led == 0)
 ```
 
 ### *button_interface.h*
+Para usar a interface do botão precisa implementar essas duas callbacks para permitir o seu uso
 ```c
 typedef struct 
 {
@@ -142,11 +167,13 @@ typedef struct
 } Button_Interface;
 ```
 
+A assinatura do uso da interface corresponde ao contexto do botão, que depende do modo selecionado, o contexo da Shared Memory, e a interface do botão devidamente preenchida.
 ```c
 bool Button_Run(void *object, POSIX_SHM *posix_shm, Button_Interface *button);
 ```
 
 ### *button_interface.c*
+A implementação da interface baseia-se em inicializar o botão, inicializar a Shared Memory, e no loop alterar o conteúdo da shared memory mediante o pressionamento do botão.
 ```c
 bool Button_Run(void *object, POSIX_SHM *posix_shm, Button_Interface *button)
 {
@@ -172,6 +199,7 @@ bool Button_Run(void *object, POSIX_SHM *posix_shm, Button_Interface *button)
 ```
 
 ### *led_interface.h*
+Para realizar o uso da interface de LED é necessário preencher os callbacks que serão utilizados pela implementação da interface, sendo a inicialização e a função que altera o estado do LED.
 ```c
 typedef struct 
 {
@@ -180,11 +208,13 @@ typedef struct
 } LED_Interface;
 ```
 
+A assinatura do uso da interface corresponde ao contexto do LED, que depende do modo selecionado, o contexo da Shared Memory, e a interface do LED devidamente preenchida.
 ```c
 bool LED_Run(void *object, POSIX_SHM *posix_shm, LED_Interface *led);
 ```
 
 ### *led_interface.c*
+A implementação da interface baseia-se em inicializar o LED, inicializar a Shared Memory, e no loop verifica se houve alteração no conteúdo da shared memory para poder alterar o seu estado interno.
 ```c
 bool LED_Run(void *object, POSIX_SHM *posix_shm, LED_Interface *led)
 {
@@ -299,7 +329,7 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-Preencher
+POSIX Shared Memory permite que dois processos não relacionados se comuniquem compartilhando uma região de memória, de forma similiar a Shared Memory System V, porém realiza esse procedimento através de mmap que não é relacionada a sua API igual aos outros mecanismos. Normalmente é usada em conjunto com o POSIX Semaphore.
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_SharedMemory_POSIX)
