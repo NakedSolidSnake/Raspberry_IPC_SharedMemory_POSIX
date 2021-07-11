@@ -30,7 +30,7 @@
 * [Referência](#referência)
 
 ## Introdução
-POSIX Shared Memory é uma padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Semaphore System V, porém utiliza uma forma de implementação totalmente nova(não abordado nesse artigo). Diferente dos outros mecanismos(Semaphore e Queue) necessita de um outro recurso para que a memória alocada seja compartilhada entre os outros processos.
+POSIX Shared Memory é uma padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Shared Memory System V, porém utiliza uma forma de implementação totalmente nova(não abordado nesse artigo). Diferente dos outros mecanismos(Semaphore e Queue) necessita de outro recurso para que a memória alocada seja compartilhada entre os outros processos.
 
 ## Systemcalls
 Para utilizar a API referente a Shared Memory é necessário realizar a linkagem com a biblioteca rt
@@ -334,7 +334,7 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-POSIX Shared Memory permite que dois processos não relacionados se comuniquem compartilhando uma região de memória, de forma similiar a Shared Memory System V, porém realiza esse procedimento através de mmap que não é relacionada a sua API igual aos outros mecanismos. Normalmente é usada em conjunto com o POSIX Semaphore.
+POSIX Shared Memory permite que dois processos não relacionados se comuniquem compartilhando uma região de memória, de forma similar a Shared Memory System V, porém realiza esse procedimento através de mmap que não é relacionada a sua API igual aos outros mecanismos. Normalmente é usada em conjunto com o POSIX Semaphore.
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_SharedMemory_POSIX)
